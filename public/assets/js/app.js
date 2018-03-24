@@ -2,7 +2,7 @@ $(function () {
     $('#submit-button').click(function(event){
         event.preventDefault();
         var burgerName = $('#burger-text').val().trim();
-        $.ajax("/api/burgers/", {
+        $.ajax("/burgers", {
             type: "POST",
             data: { 'name': burgerName}
         }).then(
@@ -15,7 +15,7 @@ $(function () {
     $('.devour-button').click(function(event){
         event.preventDefault();
         var id = $(this).attr('data-id');
-        $.ajax("/api/burgers/" + id, {
+        $.ajax("/burgers" + id, {
             type:"PUT",
             data: {"devoured": true}
         }).then(

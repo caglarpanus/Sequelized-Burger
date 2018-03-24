@@ -1,48 +1,92 @@
-const express = require("express");
-const router = express.Router();
 
-// Import the model (cat.js) to use its database functions.
-const burger = require("../models/burger.js");
+// Import the model (models.js) to use its database functions. Only Index.js will be imported 
+// Any JS file inside models file will be synced to index.js. 
+const db = require("../models");
 
-// Create all our routes and set up logic within those routes where required.
-router.get("/", (req, res) => {
-  burger.all(function(data) {
-    const hbsObject = {
-      burgers: data
+module.exports = function(app){
+
+
+// Get all the burgers in the database.
+app.get("/", (req, res) => {
+  db.Burger.findAll({
+    include: [db.Customer],
+    order:"name"
+  }).then(function(data){
+
+    var hbsObject = {
+      burgers:data
     };
     console.log(hbsObject);
     res.render("index", hbsObject);
   });
+
+//Create new burger
+
+app.post("/burgers", (req, res) => {
+  db.Burger.create({
+    
+    name:req.body.name,
+    devoured:false
+  }).then(function(result){
+    console.log(result);
+    res.end();
+  })  
 });
 
-router.post("/api/burgers", (req, res) => {
-  burger.create([
-    "name"
-  ], [
-    req.body.name
-  ], function(result) {
-    // Send back the ID of the new quote
-    res.json({ id: result.insertId });
-  });
-});
 
-router.put("/api/burgers/:id", (req, res) => {
-  const condition = "id = " + req.params.id;
+app.put("/burgers/:id", function(req, res) {
 
-  console.log("condition", req);
+  var burgerID = req.params.id;
+  var customerName = req.body.customerName;
 
-  burger.update({
-    devoured: req.body.devoured
-  }, condition, function(result) {
-    if (result.changedRows == 0) {
-      // If no rows were changed, then the ID must not exist, so 404
-      return res.status(404).end();
+  db.Customer.findAll({
+    where: {
+      name: customerName
+    }
+  })
+  .then(function(customer) {
+    // Check if customer exists
+    if (customer.length === 0) {
+      // Create new customer
+      db.Customer.create({
+        name: customerName
+      })
+      .then(function(newCustomer) {
+        // Add customer reference to burger
+        db.Burger.update(
+          {
+            devoured: true,
+            CustomerId: newCustomer.id
+          },
+          {
+            where: {
+              id: req.params.id
+            }
+          }
+        ).then(function(burger) {
+          res.redirect('/');
+        });
+       
+      });
+     
     } 
-    else {
-      res.status(200).end();
-    };
+    else { // if the customer exists already
+      // Add customer reference to burger
+      db.Burger.update(
+        {
+          devoured: true,
+          CustomerId: customer[0].id
+        },
+        {
+          where: {
+            id: req.params.id
+          }
+        }
+      ).then(function(burger) {
+        res.redirect('/');
+      });
+    }
   });
-});
+ });
+}
 
-// Export routes for server.js to use.
-module.exports = router;

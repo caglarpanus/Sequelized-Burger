@@ -4,89 +4,81 @@
 const db = require("../models");
 
 module.exports = function(app){
+  //Get all the burgers in the database
+  app.get("/", function(req, res) {
 
+    db.Burger.findAll({
+      include: [ db.Customer ]
+    })
+    .then(function(data) {
 
-// Get all the burgers in the database.
-app.get("/", (req, res) => {
-  db.Burger.findAll({
-    include: [db.Customer],
-    order:"name"
-  }).then(function(data){
-
-    var hbsObject = {
-      burgers:data
-    };
-    console.log(hbsObject);
-    res.render("index", hbsObject);
+      var hbsObject = {
+        burgers: data
+      };
+      console.log(hbsObject);
+      res.render('index', hbsObject);
+    });
   });
 
-//Create new burger
+  // Create a new burger entry
+  app.post("/burgers", function(req, res) {
 
-app.post("/burgers", (req, res) => {
-  db.Burger.create({
-    
-    name:req.body.name,
-    devoured:false
-  }).then(function(result){
-    console.log(result);
-    res.end();
-  })  
-});
+    db.Burger.create(req.body)
+    .then(function(burger) {
+      res.redirect("/");
+    });
+  });
 
 
-app.put("/burgers/:id", function(req, res) {
+  app.put("/burgers/:id", function(req,res){
 
-  var burgerID = req.params.id;
-  var customerName = req.body.customerName;
+    var burgerID = req.params.id;
+    var customerName = req.body.customerName;
 
-  db.Customer.findAll({
-    where: {
-      name: customerName
-    }
-  })
-  .then(function(customer) {
-    // Check if customer exists
-    if (customer.length === 0) {
-      // Create new customer
-      db.Customer.create({
-        name: customerName
-      })
-      .then(function(newCustomer) {
-        // Add customer reference to burger
-        db.Burger.update(
-          {
-            devoured: true,
-            CustomerId: newCustomer.id
-          },
-          {
-            where: {
-              id: req.params.id
+    db.Customer.findAll({
+      where:{
+        name:customerName
+      }
+    }).then(function(customer){
+
+        if(customer.length === 0){
+
+          db.Customer.create({
+            name:customerName
+          }).then(function(newCustomer){
+
+            db.Burger.update(
+              {
+                devoured:true,
+                CustomerId:newCustomer.id
+
+              },
+              {
+                where:req.params.id
+              }
+            
+            ).then(function(burger){
+              res.redirect("/");
+            })
+
+          });
+
+        }else{
+
+          db.Burger.update(
+            {
+              devoured:true,
+              CustomerId:customer[0].id
+
             }
-          }
-        ).then(function(burger) {
-          res.redirect('/');
+        ).then(function(burger){
+          res.redirect("/");
         });
-       
-      });
-     
-    } 
-    else { // if the customer exists already
-      // Add customer reference to burger
-      db.Burger.update(
-        {
-          devoured: true,
-          CustomerId: customer[0].id
-        },
-        {
-          where: {
-            id: req.params.id
-          }
-        }
-      ).then(function(burger) {
-        res.redirect('/');
-      });
-    }
-  });
- });
-}
 
+        }
+
+    });
+
+  });
+
+}

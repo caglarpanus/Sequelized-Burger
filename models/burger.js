@@ -1,4 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
+  // Define the Burger Sequelize model
   var Burger = sequelize.define("Burger", 
     {
       name: {
@@ -10,8 +11,7 @@ module.exports = function(sequelize, DataTypes) {
         defaultValue: false
       }
     }, {
-      //A burger can only be eaten by one person. That's why I must use "belongsTo".
-      classMethods: {
+      class: {
         associate: function(models) {
           Burger.belongsTo(models.Customer, {
             onDelete: "CASCADE",
